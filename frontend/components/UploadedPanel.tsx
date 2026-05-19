@@ -43,15 +43,15 @@ function makeDecryptionUrl(url: string, key?: string): string {
 }
 
 const RAW_URL_FLAGS: { syntax: string; desc: string }[] = [
-  { syntax: "?mime=…", desc: "Override the Content-Type" },
-  { syntax: "?a", desc: "Force download (Content-Disposition: attachment)" },
-  { syntax: ".png", desc: "Append an extension to hint MIME type" },
-  { syntax: "/foo.txt", desc: "Append a filename for the downloaded file" },
+  { syntax: "?mime=...", desc: "指定 Content-Type" },
+  { syntax: "?a", desc: "强制下载，而不是在浏览器中打开" },
+  { syntax: ".png", desc: "追加扩展名，用来提示 MIME 类型" },
+  { syntax: "/foo.txt", desc: "追加下载时使用的文件名" },
 ]
 
 const DISPLAY_URL_FLAGS: { syntax: string; desc: string }[] = [
-  { syntax: "?lang=js", desc: "Override syntax highlighting language" },
-  { syntax: "/foo.txt", desc: "Append a filename — shown in the header and used as the download name" },
+  { syntax: "?lang=js", desc: "指定语法高亮语言" },
+  { syntax: "/foo.txt", desc: "追加文件名，会显示在标题中并作为下载文件名" },
 ]
 
 function InfoTooltip({ children }: { children: React.ReactNode }) {
@@ -59,7 +59,7 @@ function InfoTooltip({ children }: { children: React.ReactNode }) {
     <Tooltip content={<div className="px-1 py-1 text-small max-w-[22rem]">{children}</div>}>
       <button
         type="button"
-        aria-label="More information"
+        aria-label="更多信息"
         className="inline-flex items-center ml-1 text-default-400 hover:text-default-600 focus:outline-none focus-visible:ring-1 focus-visible:ring-default-400 rounded"
       >
         <InfoIcon className="size-3" />
@@ -74,7 +74,7 @@ function UrlTooltip({ desc, flags }: { desc?: React.ReactNode; flags?: { syntax:
       {desc && <div className={flags ? "mb-2" : ""}>{desc}</div>}
       {flags && (
         <>
-          <div className="font-medium mb-1">Options:</div>
+          <div className="font-medium mb-1">可选参数：</div>
           <div className="flex flex-col gap-1">
             {flags.map((f) => (
               <div key={f.syntax} className="flex flex-row gap-2 items-baseline">
@@ -122,30 +122,30 @@ export function UploadedPanel({
 
   const markdownUrlField = (pasteResponse: PasteResponse) =>
     urlInput(
-      "Markdown URL",
+      "Markdown 链接",
       withPathPrefix(pasteResponse.url, "/a"),
-      <InfoTooltip>Render the paste as GitHub-flavored markdown (with code highlighting and LaTeX).</InfoTooltip>,
+      <InfoTooltip>把 Paste 渲染为 GitHub 风格 Markdown，支持代码高亮和 LaTeX。</InfoTooltip>,
     )
 
   return (
     <Card classNames={mergeClasses({ base: tst }, { base: className })} {...rest}>
-      <CardHeader className="text-2xl pl-4 pb-2">Uploaded Paste</CardHeader>
+      <CardHeader className="text-2xl pl-4 pb-2">上传结果</CardHeader>
       <Divider />
       <CardBody>
         {isLoading ? (
           <div className="w-full flex flex-col items-center justify-center gap-2 py-4">
             <CircularProgress
-              aria-label={"Loading..."}
+              aria-label={"上传中..."}
               value={loadingProgress ? (100 * loadingProgress.doneBytes) / Math.max(loadingProgress.totalBytes, 1) : 50}
             />
             {loadingProgress && (
               <span className="text-sm text-foreground-500 tabular-nums">
-                Uploaded {formatSize(loadingProgress.doneBytes)} / {formatSize(loadingProgress.totalBytes)}
+                已上传 {formatSize(loadingProgress.doneBytes)} / {formatSize(loadingProgress.totalBytes)}
               </span>
             )}
             {onCancel && (
               <Button size="sm" variant="ghost" onPress={onCancel} className="mt-1">
-                Cancel
+                取消
               </Button>
             )}
           </div>
@@ -154,17 +154,16 @@ export function UploadedPanel({
             <>
               <Input
                 {...inputProps}
-                label={"Display URL"}
+                label={"展示链接"}
                 labelExtra={
                   <UrlTooltip
                     desc={
                       <>
-                        Browser-friendly view with syntax highlighting.
+                        适合在浏览器中查看，支持语法高亮。
                         {encryptionKey && (
                           <>
                             {" "}
-                            The decryption key sits after the <code className="font-mono">#</code> in the URL and is
-                            never sent to the server — it stays in the browser for client-side decryption.
+                            解密密钥位于 URL 的 <code className="font-mono">#</code> 后面，不会发送到服务器，只会留在浏览器中用于客户端解密。
                           </>
                         )}
                       </>
@@ -184,23 +183,23 @@ export function UploadedPanel({
               />
               {isMarkdown && !isEncrypted && markdownUrlField(pasteResponse)}
               {urlInput(
-                "Raw URL",
+                "原始链接",
                 pasteResponse.url,
                 <UrlTooltip
                   desc={
                     encryptionKey
-                      ? "Returns the raw paste content — encrypted, since this paste uses client-side encryption. Decrypt it yourself with the key."
-                      : "Returns the raw paste content directly, with the inferred Content-Type."
+                      ? "返回原始 Paste 内容。由于启用了客户端加密，这里的内容仍是密文，需要用密钥自行解密。"
+                      : "直接返回原始 Paste 内容，并带上推断出的 Content-Type。"
                   }
                   flags={RAW_URL_FLAGS}
                 />,
               )}
               {urlInput(
-                "Manage URL",
+                "管理链接",
                 pasteResponse.manageUrl,
-                <InfoTooltip>Use this URL to update or delete the paste later. Keep it private.</InfoTooltip>,
+                <InfoTooltip>之后可用这个链接更新或删除 Paste。请妥善保管，不要公开。</InfoTooltip>,
               )}
-              <Input {...inputProps} label={"Expiration"} value={new Date(pasteResponse.expireAt).toLocaleString()} />
+              <Input {...inputProps} label={"过期时间"} value={new Date(pasteResponse.expireAt).toLocaleString()} />
 
               <button
                 type="button"
@@ -213,7 +212,7 @@ export function UploadedPanel({
                 }
               >
                 <ChevronDownIcon aria-hidden="true" className={`w-4 h-4 ${tst} ${moreOpen ? "" : "-rotate-90"}`} />
-                <span>More</span>
+                <span>更多</span>
               </button>
 
               {moreOpen && (
@@ -222,16 +221,14 @@ export function UploadedPanel({
                   {!isEncrypted &&
                     isUrlPaste &&
                     urlInput(
-                      "Shortener URL",
+                      "短网址跳转链接",
                       withPathPrefix(pasteResponse.url, "/u"),
-                      <InfoTooltip>The paste body is a URL — this endpoint redirects (302) to it.</InfoTooltip>,
+                      <InfoTooltip>当 Paste 内容本身是 URL 时，这个入口会 302 跳转到该 URL。</InfoTooltip>,
                     )}
                   {urlInput(
-                    "Metadata URL",
+                    "元数据链接",
                     withPathPrefix(pasteResponse.url, "/m"),
-                    <InfoTooltip>
-                      Get paste metadata (size, timestamps, filename, encryption scheme, ...) as JSON.
-                    </InfoTooltip>,
+                    <InfoTooltip>以 JSON 获取 Paste 元数据，例如大小、时间、文件名和加密方式等。</InfoTooltip>,
                   )}
                 </div>
               )}

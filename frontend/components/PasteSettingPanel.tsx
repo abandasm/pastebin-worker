@@ -29,22 +29,22 @@ interface PasteSettingPanelProps extends CardProps {
 }
 
 const URL_KIND_OPTIONS: { value: UploadKind; label: string }[] = [
-  { value: "short", label: "short" },
-  { value: "long", label: "long" },
-  { value: "custom", label: "custom" },
-  { value: "manage", label: "manage" },
+  { value: "short", label: "短链接" },
+  { value: "long", label: "私密长链接" },
+  { value: "custom", label: "自定义" },
+  { value: "manage", label: "管理" },
 ]
 
 function urlKindDescription(kind: UploadKind): string {
   switch (kind) {
     case "short":
-      return `Random ${PASTE_NAME_LEN}-character name`
+      return `随机生成 ${PASTE_NAME_LEN} 位名称`
     case "long":
-      return `Random ${PRIVATE_PASTE_NAME_LEN}-character name`
+      return `随机生成 ${PRIVATE_PASTE_NAME_LEN} 位名称，更难被猜到`
     case "custom":
-      return "Pick your own name (prefixed with ~)"
+      return "自己指定名称，访问时会带有 ~ 前缀"
     case "manage":
-      return "Update or delete an existing paste"
+      return "更新或删除已有 Paste"
   }
 }
 
@@ -70,35 +70,50 @@ interface CustomNameUI {
   endContent: React.ReactNode
 }
 
+function zhValidationMessage(message: string): string {
+  if (!message) return message
+  return message
+    .replace(/^Password too short \((.+)\)$/, "密码太短（$1）")
+    .replace(/^Password too long \((.+)\)$/, "密码太长（$1）")
+    .replace("Password should not contain newlines", "密码不能包含换行")
+    .replace("Name should have at least 3 characters", "名称至少需要 3 个字符")
+    .replace(/^Name (.+) not satisfying regexp (.+)$/, "名称 $1 不符合规则 $2")
+    .replace(/^Exceed max expiration \((.+)\)$/, "超过最大有效期（$1）")
+    .replace(/^Expires in (.+)$/, "将在 $1 后过期")
+    .replace(/^URL should starts with (.+)$/, "URL 应该以 $1 开头")
+    .replace("URL should contain a colon", "URL 中应该包含冒号和管理密码")
+    .replace("Invalid URL", "URL 无效")
+}
+
 function customNameUI(name: string, availability: NameAvailability): CustomNameUI {
   const [ok, msg] = verifyName(name)
-  if (!ok) return { isInvalid: true, errorMessage: msg, endContent: null }
+  if (!ok) return { isInvalid: true, errorMessage: zhValidationMessage(msg), endContent: null }
 
   switch (availability.status) {
-    case "idle": // debouncing — treat as checking for the user
+    case "idle": // debouncing: treat as checking for the user
     case "checking":
       return {
         isInvalid: false,
-        description: "Checking availability…",
-        endContent: <SpinnerIcon className="size-4 text-default-400" aria-label="Checking availability" />,
+        description: "正在检查是否可用...",
+        endContent: <SpinnerIcon className="size-4 text-default-400" aria-label="正在检查是否可用" />,
       }
     case "available":
       return {
         isInvalid: false,
-        successMessage: "Name available",
-        endContent: <CheckIcon className="size-4 text-success" aria-label="Name available" />,
+        successMessage: "名称可用",
+        endContent: <CheckIcon className="size-4 text-success" aria-label="名称可用" />,
       }
     case "taken":
       return {
         isInvalid: true,
-        errorMessage: "Name already taken",
-        endContent: <XIcon className="size-4 text-danger" aria-label="Name taken" />,
+        errorMessage: "名称已被占用",
+        endContent: <XIcon className="size-4 text-danger" aria-label="名称已被占用" />,
       }
     case "error":
       return {
         isInvalid: false,
-        warningMessage: `Could not check availability: ${availability.message}`,
-        endContent: <QuestionMarkCircleIcon className="size-4 text-yellow-600" aria-label="Availability unknown" />,
+        warningMessage: `无法检查名称是否可用：${availability.message}`,
+        endContent: <QuestionMarkCircleIcon className="size-4 text-yellow-600" aria-label="可用性未知" />,
       }
   }
 }
@@ -111,15 +126,19 @@ export function PanelSettingsPanel({
   footer,
   ...rest
 }: PasteSettingPanelProps) {
+  const expirationResult = verifyExpiration(setting.expiration, config)
+  const passwordResult = verifyPassword(setting.password)
+  const manageUrlResult = verifyManageUrl(setting.manageUrl, config)
+
   return (
-    <Card aria-label="Pastebin setting panel" classNames={cardOverrides} {...rest}>
-      <CardHeader className="text-2xl pl-4 pb-2">Settings</CardHeader>
+    <Card aria-label="Pastebin 设置面板" classNames={cardOverrides} {...rest}>
+      <CardHeader className="text-2xl pl-4 pb-2">设置</CardHeader>
       <Divider className={tst} />
       <CardBody>
         <div className="gap-4 flex flex-row">
           <Input
             type="text"
-            label="Expiration"
+            label="有效期"
             classNames={{
               base: "basis-40",
               ...inputOverrides,
@@ -128,24 +147,20 @@ export function PanelSettingsPanel({
             value={setting.expiration}
             isRequired
             onValueChange={(e) => onSettingChange({ ...setting, expiration: e })}
-            isInvalid={!verifyExpiration(setting.expiration, config)[0]}
-            errorMessage={verifyExpiration(setting.expiration, config)[1]}
-            description={verifyExpiration(setting.expiration, config)[1]}
+            isInvalid={!expirationResult[0]}
+            errorMessage={zhValidationMessage(expirationResult[1])}
+            description={zhValidationMessage(expirationResult[1])}
           />
           <Input
             type="password"
-            label="Password"
+            label="管理密码"
             labelExtra={
               <Tooltip
-                content={
-                  <div className="px-1 py-1 text-small max-w-[18rem]">
-                    Used to update/delete your paste. Randomly generated if left empty.
-                  </div>
-                }
+                content={<div className="px-1 py-1 text-small max-w-[18rem]">用来更新或删除这条 Paste。留空时会自动生成随机密码。</div>}
               >
                 <button
                   type="button"
-                  aria-label="More information about Password"
+                  aria-label="管理密码说明"
                   className="inline-flex items-center ml-1 text-default-400 hover:text-default-600 focus:outline-none focus-visible:ring-1 focus-visible:ring-default-400 rounded"
                 >
                   <InfoIcon className="size-3" />
@@ -159,18 +174,18 @@ export function PanelSettingsPanel({
               base: "flex-1",
               ...inputOverrides,
             }}
-            placeholder={"Generated randomly"}
-            isInvalid={!verifyPassword(setting.password)[0]}
-            errorMessage={verifyPassword(setting.password)[1]}
+            placeholder={"留空则随机生成"}
+            isInvalid={!passwordResult[0]}
+            errorMessage={zhValidationMessage(passwordResult[1])}
           />
         </div>
         <Divider className={`my-4 ${tst}`} />
         <div className="pl-1">
           <div className="flex flex-row items-center flex-wrap gap-x-2 gap-y-2 text-sm">
-            <span className="text-default-700">Use</span>
+            <span className="text-default-700">使用</span>
             <div
               role="radiogroup"
-              aria-label="URL kind"
+              aria-label="链接类型"
               className="inline-flex rounded-lg border border-default-200 bg-default-100"
             >
               {URL_KIND_OPTIONS.map((opt, idx) => {
@@ -185,7 +200,7 @@ export function PanelSettingsPanel({
                         <div>{urlKindDescription(opt.value)}</div>
                         {urlKindExample(opt.value, config.DEPLOY_URL) && (
                           <div className="mt-1 font-mono text-xs opacity-80 break-all">
-                            e.g. {urlKindExample(opt.value, config.DEPLOY_URL)}
+                            例如 {urlKindExample(opt.value, config.DEPLOY_URL)}
                           </div>
                         )}
                       </div>
@@ -241,9 +256,9 @@ export function PanelSettingsPanel({
               onValueChange={(m) => onSettingChange({ ...setting, manageUrl: m })}
               type="text"
               className="mt-2"
-              isInvalid={!verifyManageUrl(setting.manageUrl, config)[0]}
-              errorMessage={verifyManageUrl(setting.manageUrl, config)[1]}
-              placeholder="Manage URL"
+              isInvalid={!manageUrlResult[0]}
+              errorMessage={zhValidationMessage(manageUrlResult[1])}
+              placeholder="管理链接"
             />
           )}
         </div>
@@ -254,27 +269,24 @@ export function PanelSettingsPanel({
             isSelected={setting.doEncrypt}
             onValueChange={(v) => onSettingChange({ ...setting, doEncrypt: v })}
           >
-            Client-side encryption
+            客户端加密
           </Switch>
           <Tooltip
             content={
               <div className="px-1 py-2 max-w-[20rem]">
-                <h3 className="text-normal font-bold mb-2">Client-side encryption</h3>
+                <h3 className="text-normal font-bold mb-2">客户端加密</h3>
                 <div className="text-small">
-                  Your paste is shared via a URL containing the decryption key in the URL hash, which is never sent to
-                  the server. Decryption happens in the browser, so only those with the key (not the server) can view
-                  the decrypted content.
+                  分享链接会把解密密钥放在 URL 的 # 后面，这部分不会发送到服务器。解密在浏览器中完成，因此只有拿到密钥的人才能看到明文内容。
                 </div>
                 <div className="text-small mt-2 text-yellow-600">
-                  Only the paste content is encrypted. The filename and its inferred mime type remain visible to the
-                  server and anyone with the URL.
+                  只有 Paste 内容会被加密。文件名和推断出的 MIME 类型仍会被服务器以及拥有链接的人看到。
                 </div>
               </div>
             }
           >
             <button
               type="button"
-              aria-label="More information about client-side encryption"
+              aria-label="客户端加密说明"
               className="inline-flex items-center ml-2 text-default-500 hover:text-default-700 focus:outline-none focus-visible:ring-1 focus-visible:ring-default-400 rounded"
             >
               <InfoIcon className="size-3.5" />

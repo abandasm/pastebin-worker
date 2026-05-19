@@ -14,6 +14,12 @@ const icons: Record<ModeSelection, JSX.Element> = {
   dark: <MoonIcon className="size-6 inline" />,
 }
 
+const modeLabels: Record<ModeSelection, string> = {
+  system: "跟随系统",
+  light: "浅色",
+  dark: "深色",
+}
+
 export function useDarkModeSelection(): [
   boolean,
   ModeSelection | undefined,
@@ -82,7 +88,7 @@ export function DarkModeToggle({ modeSelection, setModeSelection, className, ...
         size="sm"
         variant="light"
         className={`${tst}` + " " + className}
-        aria-label="Toggle dark mode"
+        aria-label="切换深色模式"
         style={{ visibility: "hidden" }}
         {...rest}
       >
@@ -92,13 +98,13 @@ export function DarkModeToggle({ modeSelection, setModeSelection, className, ...
   }
 
   return (
-    <Tooltip content={`Toggle dark mode (currently ${currentMode} mode)`}>
+    <Tooltip content={`切换外观（当前：${modeLabels[currentMode]}）`}>
       <Button
         isIconOnly
         size="sm"
         variant="light"
         className={`${tst}` + " " + className}
-        aria-label="Toggle dark mode"
+        aria-label="切换深色模式"
         onPress={() => {
           const newSelected = modeSelections[(modeSelections.indexOf(currentMode) + 1) % modeSelections.length]
           setModeSelection(newSelected)

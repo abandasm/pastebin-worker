@@ -41,7 +41,7 @@ export function PasteInputPanel({
     if (file) {
       const [ok, msg] = verifyFileSize(file.size, config)
       if (!ok) {
-        showModal("File too large", msg)
+        showModal("文件过大", msg)
         // also reset the underlying input so picking the same file again re-triggers onChange
         if (fileInput.current) fileInput.current.value = ""
         return
@@ -95,7 +95,7 @@ export function PasteInputPanel({
           }}
         >
           {/*Possibly a bug of chrome, but Tab sometimes has a transient unexpected scrollbar when resizing*/}
-          <Tab key={"edit"} title="Edit" className={"overflow-hidden"}>
+          <Tab key={"edit"} title="编辑文本" className={"overflow-hidden"}>
             <div
               className="relative"
               onDrop={onDrop}
@@ -121,7 +121,7 @@ export function PasteInputPanel({
                 filename={state.editFilename}
                 setFilename={(name) => onStateChange({ ...state, editFilename: name })}
                 disabled={isPasteLoading}
-                placeholder={isPasteLoading ? "Loading..." : "Edit your paste here"}
+                placeholder={isPasteLoading ? "加载中..." : "在这里输入或粘贴内容"}
               />
               {isEditDragged && (
                 <div
@@ -131,20 +131,20 @@ export function PasteInputPanel({
                   }
                   aria-hidden="true"
                 >
-                  <div className="text-2xl my-2 font-bold">Drop file here</div>
-                  <p className="text-1xl text-foreground-500">Release to upload as file</p>
+                  <div className="text-2xl my-2 font-bold">把文件拖到这里</div>
+                  <p className="text-1xl text-foreground-500">松开后作为文件上传</p>
                 </div>
               )}
             </div>
           </Tab>
-          <Tab key="file" title="File">
+          <Tab key="file" title="上传文件">
             <div
               className={
                 `w-full h-[20rem] rounded-xl flex flex-col items-center justify-center cursor-pointer relative ${tst}` +
                 (isDragged ? " bg-primary-100" : " bg-primary-50")
               }
               role="button"
-              aria-label="Select file"
+              aria-label="选择文件"
               onDrop={onDrop}
               onDragEnter={() => setDragged(true)}
               onDragLeave={() => setDragged(false)}
@@ -155,18 +155,18 @@ export function PasteInputPanel({
               onClick={() => fileInput.current?.click()}
             >
               <div className="text-2xl my-2 font-bold px-4 text-center break-all">
-                {state.file !== null ? state.file.name : "Select File"}
+                {state.file !== null ? state.file.name : "选择文件"}
               </div>
               <p className={`text-1xl text-foreground-500 ${tst} relative`}>
                 <span>
                   {state.file !== null
-                    ? `${formatSize(state.file.size)} · Click or drag to replace`
-                    : "Click or drag & drop file here"}
+                    ? `${formatSize(state.file.size)} · 点击或拖入文件以替换`
+                    : "点击选择，或把文件拖到这里"}
                 </span>
               </p>
               {state.file && (
                 <XIcon
-                  aria-label="Remove file"
+                  aria-label="移除文件"
                   role="button"
                   className={`h-6 inline absolute top-2 right-2 text-red-400 ${tst}`}
                   onClick={(e) => {
